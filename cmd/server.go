@@ -17,7 +17,7 @@ var serverFlags struct {
 }
 
 var serverCmd = &cobra.Command{
-	Use:   "server",
+	Use:   "server ROOT_PATH",
 	Short: "Serve files through unguessable links",
 	Args:  cobra.ExactArgs(1),
 	Run:   runServer,

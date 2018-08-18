@@ -15,7 +15,7 @@ var indexFlags struct {
 }
 
 var indexCmd = &cobra.Command{
-	Use:   "index",
+	Use:   "index ROOT_PATH SERVER_URL",
 	Short: "Provide an index for files exposed by a rlink server",
 	Args:  cobra.ExactArgs(2),
 	Run:   runIndex,
