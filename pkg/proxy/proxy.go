@@ -1,19 +1,19 @@
 package proxy
 
 import (
-	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
-	"hash"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/connesc/rlink/pkg/rewriter"
 )
 
-func New(targetURL string, secret []byte) http.Handler {
+func New(targetURL string, mode string, secret []byte) (http.Handler, error) {
 	target, err := url.Parse(targetURL)
 	if err != nil {
 		panic(err)
@@ -26,15 +26,24 @@ func New(targetURL string, secret []byte) http.Handler {
 		targetPath += "/"
 	}
 
+	var urlRewriter rewriter.URLRewriter
+	switch mode {
+	case "sign":
+		urlRewriter = rewriter.NewURLSigner(sha1.New, secret, base64.RawURLEncoding)
+	default:
+		return nil, fmt.Errorf("proxy: unknown URL rewriting mode: %v", mode)
+	}
+
 	directorWithErr := func(req *http.Request) (err error) {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
 
-		req.URL.RawPath, err = rewritePath(targetPath, req.URL.EscapedPath(), sha1.New, secret, base64.RawURLEncoding)
+		originalPath, err := urlRewriter.ToOriginal(req.URL.EscapedPath())
 		if err != nil {
 			return
 		}
 
+		req.URL.RawPath = targetPath + originalPath
 		req.URL.Path, err = url.PathUnescape(req.URL.RawPath)
 		if err != nil {
 			return
@@ -64,41 +73,5 @@ func New(targetURL string, secret []byte) http.Handler {
 		}
 	}
 
-	return &httputil.ReverseProxy{Director: director}
-}
-
-func rewritePath(basePath string, reqPath string, hashFunc func() hash.Hash, secret []byte, encoding *base64.Encoding) (string, error) {
-	chunks := strings.SplitN(reqPath[1:], "/", 2)
-
-	newPath := ""
-	switch len(chunks) {
-	case 0:
-		return "", fmt.Errorf("rewritePath: no MAC in request URL")
-	case 2:
-		newPath = chunks[1]
-	}
-	encodedMAC := []byte(chunks[0])
-
-	mac := hmac.New(hashFunc, secret)
-	expectedMACBytes := mac.Size()
-
-	actualMACBytes := encoding.DecodedLen(len(encodedMAC))
-	if actualMACBytes != expectedMACBytes {
-		return "", fmt.Errorf("rewritePath: invalid MAC: expected %v bytes, got %v", expectedMACBytes, actualMACBytes)
-	}
-
-	decodedMAC := make([]byte, expectedMACBytes)
-	_, err := encoding.Decode(decodedMAC, encodedMAC)
-	if err != nil {
-		return "", fmt.Errorf("rewritePath: invalid MAC: %v", err)
-	}
-
-	mac.Write([]byte(newPath))
-	computedMAC := mac.Sum(nil)
-
-	if !hmac.Equal(decodedMAC, computedMAC) {
-		return "", fmt.Errorf("rewritePath: MAC does not match (%v != %v)", decodedMAC, computedMAC)
-	}
-
-	return basePath + newPath, nil
+	return &httputil.ReverseProxy{Director: director}, nil
 }

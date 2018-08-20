@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/connesc/rlink/pkg/proxy"
@@ -32,6 +33,10 @@ func init() {
 }
 
 func runProxy(cmd *cobra.Command, args []string) {
-	server := proxy.New(args[0], []byte(proxyFlags.secret))
-	panic(http.ListenAndServe(proxyFlags.addr, server))
+	server, err := proxy.New(args[0], proxyFlags.mode, []byte(proxyFlags.secret))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Fatalln(http.ListenAndServe(proxyFlags.addr, server))
 }
