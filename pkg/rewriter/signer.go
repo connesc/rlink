@@ -8,21 +8,21 @@ import (
 	"strings"
 )
 
-type URLSigner struct {
+type PathSigner struct {
 	hashFunc func() hash.Hash
 	key      []byte
 	encoding *base64.Encoding
 }
 
-func NewURLSigner(hashFunc func() hash.Hash, key []byte, encoding *base64.Encoding) *URLSigner {
-	return &URLSigner{
+func NewPathSigner(hashFunc func() hash.Hash, key []byte, encoding *base64.Encoding) *PathSigner {
+	return &PathSigner{
 		hashFunc: hashFunc,
 		key:      key,
 		encoding: encoding,
 	}
 }
 
-func (s *URLSigner) FromOriginal(originalPath string) (string, error) {
+func (s *PathSigner) FromOriginal(originalPath string) (string, error) {
 	mac := hmac.New(s.hashFunc, s.key)
 	mac.Write([]byte(originalPath))
 	decodedMAC := mac.Sum(nil)
@@ -31,13 +31,13 @@ func (s *URLSigner) FromOriginal(originalPath string) (string, error) {
 	return encodedMAC + originalPath, nil
 }
 
-func (s *URLSigner) ToOriginal(signedPath string) (string, error) {
+func (s *PathSigner) ToOriginal(signedPath string) (string, error) {
 	chunks := strings.SplitN(signedPath[1:], "/", 2)
 
 	originalPath := ""
 	switch len(chunks) {
 	case 0:
-		return "", fmt.Errorf("URLSigner: no MAC in request URL")
+		return "", fmt.Errorf("PathSigner: no MAC in signed path")
 	case 2:
 		originalPath = chunks[1]
 	}
@@ -48,20 +48,20 @@ func (s *URLSigner) ToOriginal(signedPath string) (string, error) {
 
 	actualMACBytes := s.encoding.DecodedLen(len(encodedMAC))
 	if actualMACBytes != expectedMACBytes {
-		return "", fmt.Errorf("URLSigner: invalid MAC: expected %v bytes, got %v", expectedMACBytes, actualMACBytes)
+		return "", fmt.Errorf("PathSigner: invalid MAC: expected %v bytes, got %v", expectedMACBytes, actualMACBytes)
 	}
 
 	decodedMAC := make([]byte, expectedMACBytes)
 	_, err := s.encoding.Decode(decodedMAC, encodedMAC)
 	if err != nil {
-		return "", fmt.Errorf("URLSigner: invalid MAC: %v", err)
+		return "", fmt.Errorf("PathSigner: invalid MAC: %v", err)
 	}
 
 	mac.Write([]byte(originalPath))
 	computedMAC := mac.Sum(nil)
 
 	if !hmac.Equal(decodedMAC, computedMAC) {
-		return "", fmt.Errorf("URLSigner: MAC does not match (%v != %v)", decodedMAC, computedMAC)
+		return "", fmt.Errorf("PathSigner: MAC does not match (%v != %v)", decodedMAC, computedMAC)
 	}
 
 	return originalPath, nil

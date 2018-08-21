@@ -26,19 +26,19 @@ func New(targetURL string, mode string, secret []byte) (http.Handler, error) {
 		targetPath += "/"
 	}
 
-	var urlRewriter rewriter.URLRewriter
+	var pathRewriter rewriter.PathRewriter
 	switch mode {
 	case "sign":
-		urlRewriter = rewriter.NewURLSigner(sha1.New, secret, base64.RawURLEncoding)
+		pathRewriter = rewriter.NewPathSigner(sha1.New, secret, base64.RawURLEncoding)
 	default:
-		return nil, fmt.Errorf("proxy: unknown URL rewriting mode: %v", mode)
+		return nil, fmt.Errorf("proxy: unknown path rewriting mode: %v", mode)
 	}
 
 	directorWithErr := func(req *http.Request) (err error) {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
 
-		originalPath, err := urlRewriter.ToOriginal(req.URL.EscapedPath())
+		originalPath, err := pathRewriter.ToOriginal(req.URL.EscapedPath())
 		if err != nil {
 			return
 		}

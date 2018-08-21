@@ -1,6 +1,6 @@
 package rewriter
 
-type URLRewriter interface {
+type PathRewriter interface {
 	FromOriginal(path string) (string, error)
 	ToOriginal(path string) (string, error)
 }
