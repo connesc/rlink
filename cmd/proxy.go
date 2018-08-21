@@ -4,15 +4,15 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/connesc/rlink/pkg/proxy"
 	"github.com/spf13/cobra"
+
+	"github.com/connesc/rlink/internal/loaders"
+	"github.com/connesc/rlink/pkg/proxy"
 )
 
 var proxyFlags struct {
-	addr           string
-	mode           string
-	secret         string
-	secretEncoding string
+	addr         string
+	pathRewriter loaders.PathRewriter
 }
 
 var proxyCmd = &cobra.Command{
@@ -25,15 +25,17 @@ var proxyCmd = &cobra.Command{
 func init() {
 	proxyCmd.Flags().StringVar(&proxyFlags.addr, "addr", "127.0.0.1:8080", "listen address")
 	proxyCmd.MarkFlagRequired("addr")
-	proxyCmd.Flags().StringVar(&proxyFlags.mode, "mode", "sign", "link mode (\"sign\" or \"encrypt\")")
-	proxyCmd.Flags().StringVar(&proxyFlags.secret, "secret", "", "secret pass")
-	proxyCmd.MarkFlagRequired("secret")
-	proxyCmd.Flags().StringVar(&proxyFlags.secretEncoding, "secret-encoding", "utf8", "encoding of the secret pass (\"utf8\" or \"base64\")")
+	proxyFlags.pathRewriter.Init(proxyCmd)
 	rootCmd.AddCommand(proxyCmd)
 }
 
 func runProxy(cmd *cobra.Command, args []string) {
-	server, err := proxy.New(args[0], proxyFlags.mode, []byte(proxyFlags.secret))
+	pathRewriter, err := proxyFlags.pathRewriter.Load()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	server, err := proxy.New(args[0], pathRewriter)
 	if err != nil {
 		log.Fatalln(err)
 	}

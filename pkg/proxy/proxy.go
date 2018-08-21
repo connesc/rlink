@@ -1,8 +1,6 @@
 package proxy
 
 import (
-	"crypto/sha1"
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -13,7 +11,7 @@ import (
 	"github.com/connesc/rlink/pkg/rewriter"
 )
 
-func New(targetURL string, mode string, secret []byte) (http.Handler, error) {
+func New(targetURL string, pathRewriter rewriter.PathRewriter) (http.Handler, error) {
 	target, err := url.Parse(targetURL)
 	if err != nil {
 		panic(err)
@@ -24,14 +22,6 @@ func New(targetURL string, mode string, secret []byte) (http.Handler, error) {
 
 	if !strings.HasSuffix(targetPath, "/") {
 		targetPath += "/"
-	}
-
-	var pathRewriter rewriter.PathRewriter
-	switch mode {
-	case "sign":
-		pathRewriter = rewriter.NewPathSigner(sha1.New, secret, base64.RawURLEncoding)
-	default:
-		return nil, fmt.Errorf("proxy: unknown path rewriting mode: %v", mode)
 	}
 
 	directorWithErr := func(req *http.Request) (err error) {

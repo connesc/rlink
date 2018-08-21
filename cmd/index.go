@@ -4,14 +4,14 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+
+	"github.com/connesc/rlink/internal/loaders"
 )
 
 var indexFlags struct {
-	addr           string
-	mode           string
-	secret         string
-	secretEncoding string
-	parent         bool
+	addr         string
+	pathRewriter loaders.PathRewriter
+	parent       bool
 }
 
 var indexCmd = &cobra.Command{
@@ -24,10 +24,7 @@ var indexCmd = &cobra.Command{
 func init() {
 	indexCmd.Flags().StringVar(&indexFlags.addr, "addr", "127.0.0.1:8080", "listen address")
 	indexCmd.MarkFlagRequired("addr")
-	indexCmd.Flags().StringVar(&indexFlags.mode, "mode", "sign", "link mode (\"sign\" or \"encrypt\")")
-	indexCmd.Flags().StringVar(&indexFlags.secret, "secret", "", "secret pass")
-	indexCmd.MarkFlagRequired("secret")
-	indexCmd.Flags().StringVar(&indexFlags.secretEncoding, "secret-encoding", "utf8", "encoding of the secret pass (\"utf8\" or \"base64\")")
+	indexFlags.pathRewriter.Init(indexCmd)
 	indexCmd.Flags().BoolVar(&indexFlags.parent, "parent", false, "whether to link to the parent directory")
 	rootCmd.AddCommand(indexCmd)
 }
