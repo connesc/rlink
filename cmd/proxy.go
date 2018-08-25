@@ -35,10 +35,10 @@ func runProxy(cmd *cobra.Command, args []string) {
 		log.Fatalln(err)
 	}
 
-	server, err := proxy.New(args[0], pathRewriter)
+	handler, err := proxy.New(args[0], pathRewriter)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	log.Fatalln(http.ListenAndServe(proxyFlags.addr, server))
+	log.Fatalln(http.ListenAndServe(proxyFlags.addr, handler))
 }

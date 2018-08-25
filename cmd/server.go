@@ -1,11 +1,13 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
+	"net/http"
 
 	"github.com/spf13/cobra"
 
 	"github.com/connesc/rlink/internal/loaders"
+	"github.com/connesc/rlink/pkg/server"
 )
 
 var serverFlags struct {
@@ -34,5 +36,15 @@ func init() {
 }
 
 func runServer(cmd *cobra.Command, args []string) {
-	fmt.Println("server", serverFlags.addr, args[0])
+	pathRewriter, err := serverFlags.pathRewriter.Load()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	handler, err := server.New(args[0], pathRewriter)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Fatalln(http.ListenAndServe(serverFlags.addr, handler))
 }
