@@ -15,54 +15,54 @@ import (
 )
 
 type PathRewriter struct {
-	Mode   string
-	Secret Secret
+	Mode string
+	Key  Key
 }
 
 func (l *PathRewriter) Init(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&l.Mode, "mode", "auth-hmac-sha1", "link authentication mode")
-	l.Secret.Init(cmd)
+	l.Key.Init(cmd)
 }
 
 func (l *PathRewriter) Load() (rewriter.PathRewriter, error) {
-	secret, err := l.Secret.Load()
+	key, err := l.Key.Load()
 	if err != nil {
 		return nil, err
 	}
 
 	switch l.Mode {
 	case "auth-hmac-md5":
-		return rewriter.NewHMAC(md5.New, secret), nil
+		return rewriter.NewHMAC(md5.New, key), nil
 	case "auth-hmac-sha1":
-		return rewriter.NewHMAC(sha1.New, secret), nil
+		return rewriter.NewHMAC(sha1.New, key), nil
 	case "auth-hmac-sha224":
-		return rewriter.NewHMAC(sha256.New224, secret), nil
+		return rewriter.NewHMAC(sha256.New224, key), nil
 	case "auth-hmac-sha256":
-		return rewriter.NewHMAC(sha256.New, secret), nil
+		return rewriter.NewHMAC(sha256.New, key), nil
 	case "auth-hmac-sha384":
-		return rewriter.NewHMAC(sha512.New384, secret), nil
+		return rewriter.NewHMAC(sha512.New384, key), nil
 	case "auth-hmac-sha512":
-		return rewriter.NewHMAC(sha512.New, secret), nil
+		return rewriter.NewHMAC(sha512.New, key), nil
 	case "auth-hmac-sha512-224":
-		return rewriter.NewHMAC(sha512.New512_224, secret), nil
+		return rewriter.NewHMAC(sha512.New512_224, key), nil
 	case "auth-hmac-sha512-256":
-		return rewriter.NewHMAC(sha512.New512_256, secret), nil
+		return rewriter.NewHMAC(sha512.New512_256, key), nil
 	case "authenc-gcm-aes128":
-		return newAESGCMRewriter(16, secret)
+		return newAESGCMRewriter(16, key)
 	case "authenc-gcm-aes192":
-		return newAESGCMRewriter(24, secret)
+		return newAESGCMRewriter(24, key)
 	case "authenc-gcm-aes256":
-		return newAESGCMRewriter(32, secret)
+		return newAESGCMRewriter(32, key)
 	default:
 		return nil, fmt.Errorf("PathRewriter: unknown mode: %v", l.Mode)
 	}
 }
 
-func newAESGCMRewriter(keySize int, secret []byte) (rewriter.PathRewriter, error) {
-	if len(secret) != keySize {
-		return nil, fmt.Errorf("PathRewriter: invalid AES key: expected %v bytes, got %v", keySize, len(secret))
+func newAESGCMRewriter(keySize int, key []byte) (rewriter.PathRewriter, error) {
+	if len(key) != keySize {
+		return nil, fmt.Errorf("PathRewriter: invalid AES key: expected %v bytes, got %v", keySize, len(key))
 	}
-	aesCipher, err := aes.NewCipher(secret)
+	aesCipher, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, fmt.Errorf("PathRewriter: cannot initialize AES cipher: %v", err)
 	}
