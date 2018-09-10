@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -44,6 +45,14 @@ func runServer(cmd *cobra.Command, args []string) {
 	handler, err := server.New(args[0], pathRewriter)
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	if serverFlags.index {
+		root, err := pathRewriter.FromOriginal("/")
+		if err != nil {
+			log.Fatalln(err)
+		}
+		fmt.Printf("Root: http://%s/%s\n", serverFlags.addr, root)
 	}
 
 	log.Fatalln(http.ListenAndServe(serverFlags.addr, handler))
