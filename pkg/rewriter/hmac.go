@@ -21,16 +21,26 @@ func NewHMAC(hashFunc func() hash.Hash, key []byte) *HMACRewriter {
 }
 
 func (r *HMACRewriter) FromOriginal(originalPath string) (string, error) {
+	trailingSlash := strings.HasSuffix(originalPath, "/")
+	if trailingSlash {
+		originalPath = originalPath[:len(originalPath)-1]
+	}
+
 	mac := hmac.New(r.hashFunc, r.key)
-	mac.Write([]byte(originalPath[1:]))
+	mac.Write([]byte(originalPath))
 	decodedMAC := mac.Sum(nil)
 	encodedMAC := base64.RawURLEncoding.EncodeToString(decodedMAC)
 
-	return encodedMAC + originalPath, nil
+	return join(encodedMAC, originalPath, trailingSlash), nil
 }
 
-func (r *HMACRewriter) ToOriginal(signedPath string) (string, error) {
-	chunks := strings.SplitN(signedPath[1:], "/", 2)
+func (r *HMACRewriter) ToOriginal(authPath string) (string, error) {
+	trailingSlash := strings.HasSuffix(authPath, "/")
+	if trailingSlash {
+		authPath = authPath[:len(authPath)-1]
+	}
+
+	chunks := strings.SplitN(authPath, "/", 2)
 
 	originalPath := ""
 	switch len(chunks) {
@@ -62,5 +72,5 @@ func (r *HMACRewriter) ToOriginal(signedPath string) (string, error) {
 		return "", fmt.Errorf("HMACRewriter: MAC does not match (%v != %v)", decodedMAC, computedMAC)
 	}
 
-	return originalPath, nil
+	return join("", originalPath, trailingSlash), nil
 }

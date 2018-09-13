@@ -25,7 +25,9 @@ func NewAEAD(aead cipher.AEAD) (*AEADRewriter, error) {
 }
 
 func (r *AEADRewriter) FromOriginal(originalPath string) (string, error) {
-	dir, file := path.Split(originalPath[1:])
+	trailingSlash := strings.HasSuffix(originalPath, "/")
+
+	dir, file := path.Split(originalPath)
 	if len(dir) > 0 {
 		dir = dir[:len(dir)-1]
 	}
@@ -40,11 +42,13 @@ func (r *AEADRewriter) FromOriginal(originalPath string) (string, error) {
 	decodedPrefix = r.aead.Seal(decodedPrefix, decodedPrefix, []byte(dir), []byte(file))
 	encodedPrefix := base64.RawURLEncoding.EncodeToString(decodedPrefix)
 
-	return encodedPrefix + "/" + file, nil
+	return join(encodedPrefix, file, trailingSlash), nil
 }
 
-func (r *AEADRewriter) ToOriginal(signedPath string) (string, error) {
-	chunks := strings.SplitN(signedPath[1:], "/", 2)
+func (r *AEADRewriter) ToOriginal(authPath string) (string, error) {
+	trailingSlash := strings.HasSuffix(authPath, "/")
+
+	chunks := strings.SplitN(authPath, "/", 2)
 
 	file := ""
 	switch len(chunks) {
@@ -76,8 +80,5 @@ func (r *AEADRewriter) ToOriginal(signedPath string) (string, error) {
 		return "", fmt.Errorf("AEADRewriter: invalid prefix encryption: %v", err)
 	}
 
-	if len(dir) > 0 {
-		return string(dir) + "/" + file, nil
-	}
-	return file, nil
+	return join(string(dir), file, trailingSlash), nil
 }
