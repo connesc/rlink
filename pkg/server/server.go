@@ -19,6 +19,8 @@ type Options struct {
 }
 
 var defaultOptions = Options{
+	Files:       true,
+	Index:       true,
 	IndexParent: true,
 }
 
