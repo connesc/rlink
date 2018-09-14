@@ -30,8 +30,8 @@ func init() {
 	serverCmd.Flags().StringVar(&serverFlags.addr, "addr", "127.0.0.1:8080", "listen address")
 	serverCmd.MarkFlagRequired("addr")
 	serverFlags.pathRewriter.Init(serverCmd)
-	serverCmd.Flags().BoolVar(&serverFlags.index, "index", false, "whether to provide indices for directories")
-	serverCmd.Flags().BoolVar(&serverFlags.indexParent, "index-parent", false, "whether to link to the parent directory in indices")
+	serverCmd.Flags().BoolVar(&serverFlags.index, "index", true, "whether to provide indices for directories")
+	serverCmd.Flags().BoolVar(&serverFlags.indexParent, "index-parent", true, "whether to link to the parent directory in indices")
 	serverCmd.Flags().BoolVar(&serverFlags.prefix, "prefix", false, "whether to prefix links with /file and /dir")
 	rootCmd.AddCommand(serverCmd)
 }
@@ -42,7 +42,11 @@ func runServer(cmd *cobra.Command, args []string) {
 		log.Fatalln(err)
 	}
 
-	handler, err := server.New(args[0], pathRewriter)
+	handler, err := server.New(args[0], pathRewriter, &server.Options{
+		Files:       true,
+		Index:       serverFlags.index,
+		IndexParent: serverFlags.indexParent,
+	})
 	if err != nil {
 		log.Fatalln(err)
 	}
