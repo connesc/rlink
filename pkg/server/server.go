@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path"
-	"strings"
 
 	"github.com/connesc/rlink/pkg/index"
-	"github.com/connesc/rlink/pkg/rewriter"
+	"github.com/connesc/rlink/pkg/path"
 	"github.com/ncw/rclone/vfs"
 )
 
@@ -24,7 +22,7 @@ var defaultOptions = Options{
 	IndexParent: true,
 }
 
-func New(targetPath string, pathRewriter rewriter.PathRewriter, options *Options) (http.Handler, error) {
+func New(targetPath string, authenticator path.Authenticator, options *Options) (http.Handler, error) {
 	if options == nil {
 		options = &defaultOptions
 	}
@@ -35,27 +33,27 @@ func New(targetPath string, pathRewriter rewriter.PathRewriter, options *Options
 	}
 
 	handler := &server{
-		fs:           fs,
-		pathRewriter: pathRewriter,
-		options:      *options,
+		fs:            fs,
+		authenticator: authenticator,
+		options:       *options,
 	}
 	return handler, nil
 }
 
 type server struct {
-	fs           *vfs.VFS
-	pathRewriter rewriter.PathRewriter
-	options      Options
+	fs            *vfs.VFS
+	authenticator path.Authenticator
+	options       Options
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	originalPath, err := s.pathRewriter.ToOriginal(req.URL.EscapedPath()[1:])
+	reqPath, err := path.NewAuthenticated(s.authenticator, req.URL.EscapedPath())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound) // TODO: better error handling
 		return
 	}
 
-	node, err := s.fs.Stat(originalPath)
+	node, err := s.fs.Stat(reqPath.Original())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound) // TODO: better error handling
 		return
@@ -68,8 +66,8 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		if strings.HasSuffix(originalPath, "/") {
-			s.redirect(w, req, strings.TrimRight(originalPath, "/"))
+		if reqPath.IsDir() {
+			s.redirect(w, req, reqPath.AsFile())
 			return
 		}
 
@@ -87,8 +85,8 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		if !strings.HasSuffix(originalPath, "/") {
-			s.redirect(w, req, originalPath+"/")
+		if !reqPath.IsDir() {
+			s.redirect(w, req, reqPath.AsDir())
 			return
 		}
 
@@ -104,14 +102,9 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		if s.options.IndexParent {
-			content.Title = "Index of " + originalPath
-			if originalPath != "/" {
-				parentPath, _ := path.Split(originalPath[:len(originalPath)-1])
-				if len(parentPath) == 0 {
-					parentPath = "/"
-				}
-
-				parentPath, err := s.pathRewriter.FromOriginal(parentPath)
+			content.Title = "Index of " + reqPath.Original()
+			if !reqPath.IsRoot() {
+				parentPath, err := reqPath.Parent().Authenticated()
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError) // TODO: better error handling
 					return
@@ -130,7 +123,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				trailingSlash = "/"
 			}
 
-			childPath, err := s.pathRewriter.FromOriginal(child.Path() + trailingSlash)
+			childPath, err := path.New(s.authenticator, child.Path()+trailingSlash).Authenticated()
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError) // TODO: better error handling
 				return
@@ -152,12 +145,12 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (s *server) redirect(w http.ResponseWriter, req *http.Request, originalPath string) {
-	authPath, err := s.pathRewriter.FromOriginal(originalPath)
+func (s *server) redirect(w http.ResponseWriter, req *http.Request, dstPath *path.Path) {
+	authenticatedPath, err := dstPath.Authenticated()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError) // TODO: better error handling
 		return
 	}
 
-	http.Redirect(w, req, "/"+authPath, http.StatusFound)
+	http.Redirect(w, req, path.Absolute(authenticatedPath), http.StatusFound)
 }

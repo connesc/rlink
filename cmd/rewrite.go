@@ -7,40 +7,41 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/connesc/rlink/internal/loaders"
+	"github.com/connesc/rlink/pkg/path"
 )
 
 var rewriteFlags struct {
-	pathRewriter loaders.PathRewriter
-	reverse      bool
+	authenticator loaders.Authenticator
+	reverse       bool
 }
 
 var rewriteCmd = &cobra.Command{
 	Use:   "rewrite PATH",
-	Short: "Rewrite the given absolute path",
+	Short: "Rewrite the given path",
 	Args:  cobra.ExactArgs(1),
 	Run:   runRewrite,
 }
 
 func init() {
-	rewriteFlags.pathRewriter.Init(rewriteCmd)
+	rewriteFlags.authenticator.Init(rewriteCmd)
 	rewriteCmd.Flags().BoolVarP(&rewriteFlags.reverse, "reverse", "r", false, "retrieve the original path by applying the reverse transformation")
 	rootCmd.AddCommand(rewriteCmd)
 }
 
 func runRewrite(cmd *cobra.Command, args []string) {
-	pathRewriter, err := rewriteFlags.pathRewriter.Load()
+	authenticator, err := rewriteFlags.authenticator.Load()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	var transform func(string) (string, error)
 	if rewriteFlags.reverse {
-		transform = pathRewriter.ToOriginal
+		transform = authenticator.ToOriginal
 	} else {
-		transform = pathRewriter.FromOriginal
+		transform = authenticator.FromOriginal
 	}
 
-	outputPath, err := transform(args[0])
+	outputPath, err := transform(path.Normalize(args[0]))
 	if err != nil {
 		log.Fatalln(err)
 	}

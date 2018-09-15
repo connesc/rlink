@@ -12,9 +12,9 @@ import (
 )
 
 var indexFlags struct {
-	addr         string
-	pathRewriter loaders.PathRewriter
-	parent       bool
+	addr          string
+	authenticator loaders.Authenticator
+	parent        bool
 }
 
 var indexCmd = &cobra.Command{
@@ -27,7 +27,7 @@ var indexCmd = &cobra.Command{
 func init() {
 	indexCmd.Flags().StringVar(&indexFlags.addr, "addr", "127.0.0.1:8080", "listen address")
 	indexCmd.MarkFlagRequired("addr")
-	indexFlags.pathRewriter.Init(indexCmd)
+	indexFlags.authenticator.Init(indexCmd)
 	indexCmd.Flags().BoolVar(&indexFlags.parent, "parent", true, "whether to link to the parent directory")
 	rootCmd.AddCommand(indexCmd)
 }
@@ -35,12 +35,12 @@ func init() {
 func runIndex(cmd *cobra.Command, args []string) {
 	// TODO: handle args[1] (server URL)
 
-	pathRewriter, err := indexFlags.pathRewriter.Load()
+	authenticator, err := indexFlags.authenticator.Load()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	handler, err := server.New(args[0], pathRewriter, &server.Options{
+	handler, err := server.New(args[0], authenticator, &server.Options{
 		Files:       false,
 		Index:       true,
 		IndexParent: indexFlags.parent,
@@ -49,7 +49,7 @@ func runIndex(cmd *cobra.Command, args []string) {
 		log.Fatalln(err)
 	}
 
-	root, err := pathRewriter.FromOriginal("/")
+	root, err := authenticator.FromOriginal("/")
 	if err != nil {
 		log.Fatalln(err)
 	}

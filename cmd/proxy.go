@@ -11,8 +11,8 @@ import (
 )
 
 var proxyFlags struct {
-	addr         string
-	pathRewriter loaders.PathRewriter
+	addr          string
+	authenticator loaders.Authenticator
 }
 
 var proxyCmd = &cobra.Command{
@@ -25,17 +25,17 @@ var proxyCmd = &cobra.Command{
 func init() {
 	proxyCmd.Flags().StringVar(&proxyFlags.addr, "addr", "127.0.0.1:8080", "listen address")
 	proxyCmd.MarkFlagRequired("addr")
-	proxyFlags.pathRewriter.Init(proxyCmd)
+	proxyFlags.authenticator.Init(proxyCmd)
 	rootCmd.AddCommand(proxyCmd)
 }
 
 func runProxy(cmd *cobra.Command, args []string) {
-	pathRewriter, err := proxyFlags.pathRewriter.Load()
+	authenticator, err := proxyFlags.authenticator.Load()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	handler, err := proxy.New(args[0], pathRewriter)
+	handler, err := proxy.New(args[0], authenticator)
 	if err != nil {
 		log.Fatalln(err)
 	}

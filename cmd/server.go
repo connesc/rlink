@@ -12,11 +12,11 @@ import (
 )
 
 var serverFlags struct {
-	addr         string
-	pathRewriter loaders.PathRewriter
-	index        bool
-	indexParent  bool
-	prefix       bool
+	addr          string
+	authenticator loaders.Authenticator
+	index         bool
+	indexParent   bool
+	prefix        bool
 }
 
 var serverCmd = &cobra.Command{
@@ -29,7 +29,7 @@ var serverCmd = &cobra.Command{
 func init() {
 	serverCmd.Flags().StringVar(&serverFlags.addr, "addr", "127.0.0.1:8080", "listen address")
 	serverCmd.MarkFlagRequired("addr")
-	serverFlags.pathRewriter.Init(serverCmd)
+	serverFlags.authenticator.Init(serverCmd)
 	serverCmd.Flags().BoolVar(&serverFlags.index, "index", true, "whether to provide indices for directories")
 	serverCmd.Flags().BoolVar(&serverFlags.indexParent, "index-parent", true, "whether to link to the parent directory in indices")
 	serverCmd.Flags().BoolVar(&serverFlags.prefix, "prefix", false, "whether to prefix links with /file and /dir")
@@ -37,12 +37,12 @@ func init() {
 }
 
 func runServer(cmd *cobra.Command, args []string) {
-	pathRewriter, err := serverFlags.pathRewriter.Load()
+	authenticator, err := serverFlags.authenticator.Load()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	handler, err := server.New(args[0], pathRewriter, &server.Options{
+	handler, err := server.New(args[0], authenticator, &server.Options{
 		Files:       true,
 		Index:       serverFlags.index,
 		IndexParent: serverFlags.indexParent,
@@ -52,7 +52,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	}
 
 	if serverFlags.index {
-		root, err := pathRewriter.FromOriginal("/")
+		root, err := authenticator.FromOriginal("/")
 		if err != nil {
 			log.Fatalln(err)
 		}

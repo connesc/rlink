@@ -6,34 +6,29 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"strings"
 
-	"github.com/connesc/rlink/pkg/rewriter"
+	"github.com/connesc/rlink/pkg/path"
 )
 
-func New(targetURL string, pathRewriter rewriter.PathRewriter) (http.Handler, error) {
+func New(targetURL string, authenticator path.Authenticator) (http.Handler, error) {
 	target, err := url.Parse(targetURL)
 	if err != nil {
 		panic(err)
 	}
 
 	targetQuery := target.RawQuery
-	targetPath := target.EscapedPath()
-
-	if !strings.HasSuffix(targetPath, "/") {
-		targetPath += "/"
-	}
+	targetPath := path.Normalize(target.EscapedPath())
 
 	directorWithErr := func(req *http.Request) (err error) {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
 
-		originalPath, err := pathRewriter.ToOriginal(req.URL.EscapedPath())
+		originalPath, err := authenticator.ToOriginal(path.Normalize(req.URL.EscapedPath()))
 		if err != nil {
 			return
 		}
 
-		req.URL.RawPath = targetPath + originalPath
+		req.URL.RawPath = path.Absolute(path.Join(targetPath, originalPath))
 		req.URL.Path, err = url.PathUnescape(req.URL.RawPath)
 		if err != nil {
 			return

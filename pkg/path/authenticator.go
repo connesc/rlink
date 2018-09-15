@@ -1,6 +1,6 @@
-package rewriter
+package path
 
-type PathRewriter interface {
+type Authenticator interface {
 	FromOriginal(path string) (string, error)
 	ToOriginal(path string) (string, error)
 }
