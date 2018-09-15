@@ -12,5 +12,7 @@ func NewFs(targetPath string) (*vfs.VFS, error) {
 	if err != nil {
 		return nil, err
 	}
-	return vfs.New(backend, nil), nil
+	options := vfs.DefaultOpt
+	options.DirCacheTime = 0
+	return vfs.New(backend, &options), nil
 }
