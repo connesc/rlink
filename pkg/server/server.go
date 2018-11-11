@@ -47,7 +47,7 @@ type server struct {
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	reqPath, err := path.NewAuthenticated(s.authenticator, req.URL.EscapedPath())
+	reqPath, err := path.NewAuthenticated(s.authenticator, req.URL.Path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound) // TODO: better error handling
 		return
