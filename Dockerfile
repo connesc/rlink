@@ -1,8 +1,9 @@
-FROM golang:1.11 AS build
-WORKDIR /app
+FROM golang:1.11-alpine3.8 AS build
+RUN apk add --no-cache git
+WORKDIR /usr/src/rlink
 COPY . .
-RUN go build
+RUN CGO_ENABLED=0 go build -ldflags '-s -w' -o /rlink
 
-FROM gcr.io/distroless/base
-COPY --from=build /app/rlink /usr/local/bin/rlink
-ENTRYPOINT [ "rlink" ]
+FROM scratch
+COPY --from=build /rlink /
+ENTRYPOINT [ "/rlink" ]
