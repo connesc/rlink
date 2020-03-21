@@ -7,7 +7,7 @@ import (
 
 	"github.com/connesc/rlink/pkg/index"
 	"github.com/connesc/rlink/pkg/path"
-	"github.com/ncw/rclone/vfs"
+	"github.com/rclone/rclone/vfs"
 )
 
 type Options struct {
@@ -76,6 +76,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), http.StatusNotFound) // TODO: better error handling
 			return
 		}
+		defer file.Close()
 
 		http.ServeContent(w, req, node.Name(), node.ModTime(), file)
 
