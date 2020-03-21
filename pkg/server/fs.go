@@ -1,10 +1,10 @@
 package server
 
 import (
-	"github.com/ncw/rclone/fs"
-	"github.com/ncw/rclone/vfs"
+	"github.com/rclone/rclone/fs"
+	"github.com/rclone/rclone/vfs"
 
-	_ "github.com/ncw/rclone/backend/all" // import all rclone backends
+	_ "github.com/rclone/rclone/backend/all" // import all rclone backends
 )
 
 func NewFs(targetPath string) (*vfs.VFS, error) {

@@ -1,4 +1,4 @@
-FROM golang:1.11-alpine3.8 AS build
+FROM golang:1.14-alpine3.11 AS build
 RUN apk add --no-cache git
 WORKDIR /usr/src/rlink
 COPY . .
