@@ -1,8 +1,6 @@
 package loaders
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -12,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/connesc/rlink/pkg/path"
-	"github.com/connesc/rlink/pkg/path/aead"
+	"github.com/connesc/rlink/pkg/path/aessiv"
 	"github.com/connesc/rlink/pkg/path/hmac"
 )
 
@@ -49,28 +47,9 @@ func (l *Authenticator) Load() (path.Authenticator, error) {
 		return hmac.NewAuthenticator(sha512.New512_224, key), nil
 	case "auth-hmac-sha512-256":
 		return hmac.NewAuthenticator(sha512.New512_256, key), nil
-	case "authenc-gcm-aes128":
-		return newAESGCMRewriter(16, key)
-	case "authenc-gcm-aes192":
-		return newAESGCMRewriter(24, key)
-	case "authenc-gcm-aes256":
-		return newAESGCMRewriter(32, key)
+	case "authenc-aes-siv":
+		return aessiv.NewAuthenticator(key)
 	default:
 		return nil, fmt.Errorf("Authenticator: unknown mode: %v", l.Mode)
 	}
-}
-
-func newAESGCMRewriter(keySize int, key []byte) (path.Authenticator, error) {
-	if len(key) != keySize {
-		return nil, fmt.Errorf("Authenticator: invalid AES key: expected %v bytes, got %v", keySize, len(key))
-	}
-	aesCipher, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, fmt.Errorf("Authenticator: cannot initialize AES cipher: %v", err)
-	}
-	aesGCM, err := cipher.NewGCM(aesCipher)
-	if err != nil {
-		return nil, fmt.Errorf("Authenticator: cannot initialize GCM: %v", err)
-	}
-	return aead.NewAuthenticator(aesGCM)
 }
