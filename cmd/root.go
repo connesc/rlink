@@ -9,7 +9,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "rlink",
-	Short: "Rlink exposes your files through unguessable links",
+	Short: "Rlink allows to share files using unguessable links",
 }
 
 func Execute() {
