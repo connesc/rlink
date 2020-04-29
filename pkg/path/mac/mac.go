@@ -42,6 +42,16 @@ func KeyedHash(hashFunc func(key []byte) (hash.Hash, error)) MACFunc {
 	}
 }
 
+func VariableKeyedHash(hashFunc func(size int, key []byte) (hash.Hash, error), size int) MACFunc {
+	return func(key []byte) (MAC, error) {
+		hash, err := hashFunc(size, key)
+		if err != nil {
+			return nil, err
+		}
+		return hashMAC{hash}, nil
+	}
+}
+
 func PrefixedHash(hashFunc func() hash.Hash) MACFunc {
 	return func(key []byte) (MAC, error) {
 		hash := hashFunc()

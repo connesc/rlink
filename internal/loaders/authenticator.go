@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"fmt"
+	"regexp"
+	"strconv"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/blake2b"
@@ -27,13 +29,58 @@ func (l *Authenticator) Init(cmd *cobra.Command) {
 	l.Key.Init(cmd)
 }
 
+var variableModePattern = regexp.MustCompile(`^(.*)-([0-9]+)$`)
+
+func parseMode(mode string) (string, int) {
+	matches := variableModePattern.FindStringSubmatch(mode)
+	if matches == nil {
+		switch mode {
+		case "auth-shake128":
+			return mode, 32
+		case "auth-shake256":
+			return mode, 64
+		case "auth-blake2b":
+			return mode, blake2b.Size
+		default:
+			return mode, 0
+		}
+	}
+
+	variableMode := matches[1]
+
+	bits, err := strconv.Atoi(matches[2])
+	if err != nil || bits%8 != 0 {
+		return mode, 0
+	}
+	size := bits / 8
+
+	switch variableMode {
+	case "auth-shake128":
+		if size >= 16 {
+			return variableMode, size
+		}
+	case "auth-shake256":
+		if size >= 16 {
+			return variableMode, size
+		}
+	case "auth-blake2b":
+		if size >= 16 && size <= blake2b.Size {
+			return variableMode, size
+		}
+	}
+
+	return mode, 0
+}
+
 func (l *Authenticator) Load() (path.Authenticator, error) {
 	key, err := l.Key.Load()
 	if err != nil {
 		return nil, err
 	}
 
-	switch l.Mode {
+	mode, size := parseMode(l.Mode)
+
+	switch mode {
 	case "auth-hmac-md5":
 		return mac.NewAuthenticator(mac.HMAC(md5.New), key), nil
 	case "auth-hmac-sha1":
@@ -59,22 +106,18 @@ func (l *Authenticator) Load() (path.Authenticator, error) {
 	case "auth-sha3-512":
 		return mac.NewAuthenticator(mac.PrefixedHash(sha3.New512), key), nil
 	case "auth-shake128":
-		return mac.NewAuthenticator(mac.PrefixedShakeHash(sha3.NewShake128, 32), key), nil
+		return mac.NewAuthenticator(mac.PrefixedShakeHash(sha3.NewShake128, size), key), nil
 	case "auth-shake256":
-		return mac.NewAuthenticator(mac.PrefixedShakeHash(sha3.NewShake256, 64), key), nil
+		return mac.NewAuthenticator(mac.PrefixedShakeHash(sha3.NewShake256, size), key), nil
 	case "auth-blake2s":
 		return mac.NewAuthenticator(mac.KeyedHash(blake2s.New256), key), nil
 	case "auth-blake2s-128":
 		return mac.NewAuthenticator(mac.KeyedHash(blake2s.New128), key), nil
 	case "auth-blake2b":
-		return mac.NewAuthenticator(mac.KeyedHash(blake2b.New512), key), nil
-	case "auth-blake2b-256":
-		return mac.NewAuthenticator(mac.KeyedHash(blake2b.New256), key), nil
-	case "auth-blake2b-384":
-		return mac.NewAuthenticator(mac.KeyedHash(blake2b.New384), key), nil
+		return mac.NewAuthenticator(mac.VariableKeyedHash(blake2b.New, size), key), nil
 	case "authenc-aes-siv":
 		return aessiv.NewAuthenticator(key)
 	default:
-		return nil, fmt.Errorf("Authenticator: unknown mode: %v", l.Mode)
+		return nil, fmt.Errorf("Authenticator: unknown mode: %v", mode)
 	}
 }
