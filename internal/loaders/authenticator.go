@@ -25,7 +25,7 @@ type Authenticator struct {
 }
 
 func (l *Authenticator) Init(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&l.Mode, "mode", "auth-hmac-sha1", "link authentication mode")
+	cmd.Flags().StringVar(&l.Mode, "mode", "auth-blake2b-144", "link authentication mode")
 	l.Key.Init(cmd)
 }
 
