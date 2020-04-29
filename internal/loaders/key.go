@@ -16,7 +16,7 @@ type Key struct {
 func (l *Key) Init(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&l.Key, "key", "", "secret key")
 	cmd.MarkFlagRequired("key")
-	cmd.Flags().StringVar(&l.KeyEncoding, "key-encoding", "utf8", "encoding of the secret key (\"utf8\", \"base64\" or \"hex\")")
+	cmd.Flags().StringVar(&l.KeyEncoding, "key-encoding", "hex", "encoding of the secret key (\"utf8\", \"base64\" or \"hex\")")
 }
 
 func (l *Key) Load() ([]byte, error) {

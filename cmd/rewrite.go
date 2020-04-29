@@ -34,11 +34,9 @@ func runRewrite(cmd *cobra.Command, args []string) {
 		log.Fatalln(err)
 	}
 
-	var transform func(string) (string, error)
+	transform := authenticator.FromOriginal
 	if rewriteFlags.reverse {
 		transform = authenticator.ToOriginal
-	} else {
-		transform = authenticator.FromOriginal
 	}
 
 	outputPath, err := transform(path.Normalize(args[0]))
