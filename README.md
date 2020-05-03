@@ -1,13 +1,7 @@
-package cmd
+# Rlink
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/spf13/cobra"
-)
-
-const help = `Rlink allows to share files using secret links.
+```
+Rlink allows to share files using secret links.
 
 Secret links are derived from a secret key using cryptographic operations. Since those operations
 are deterministic, there is no need for persistent storage.
@@ -64,16 +58,20 @@ The following modes are available:
     use of base64 encoding in secret links.
 
 - authenc-aes-siv:
-    Authenticated encryption using AES-GCM-SIV (aka. AES-SIV). Key must be 64 bytes long.`
+    Authenticated encryption using AES-GCM-SIV (aka. AES-SIV). Key must be 64 bytes long.
 
-var rootCmd = &cobra.Command{
-	Use:  "rlink",
-	Long: help,
-}
+Usage:
+  rlink [command]
 
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
+Available Commands:
+  help        Help about any command
+  index       Provide an index for files exposed by a rlink server
+  proxy       Expose a backend server using secret links
+  rewrite     Rewrite the given path
+  server      Serve files using secret links
+
+Flags:
+  -h, --help   help for rlink
+
+Use "rlink [command] --help" for more information about a command.
+```

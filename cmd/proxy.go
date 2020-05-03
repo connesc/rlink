@@ -17,7 +17,7 @@ var proxyFlags struct {
 
 var proxyCmd = &cobra.Command{
 	Use:   "proxy BACKEND_URL",
-	Short: "Expose a backend server through unguessable links",
+	Short: "Expose a backend server using secret links",
 	Args:  cobra.ExactArgs(1),
 	Run:   runProxy,
 }
